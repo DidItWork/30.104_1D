@@ -45,10 +45,11 @@ def plot(d, equation, T, param_arrays):
 
 if __name__ == "__main__":
 
-    t = np.linspace(0, 0.5*np.pi, 1000) # array of t starting from 0 to pi
-    f = np.zeros_like(t) # turn t array into 0
-    T = np.pi/2
-    d = 2
+    
+    #f = np.zeros_like(t) # turn t array into 0
+    T = 10
+    d = 10
+    t = np.linspace(0, T, 200) # array of t starting from 0 to T
     a = np.array([1.25154432e+11, -2.85699456e+11,  1.78183933e+11, -1.02775459e+10])
     penalty_weight = 1
     penalty_weight2 = 5
@@ -61,3 +62,14 @@ if __name__ == "__main__":
     # plot_cosine_harmonics(d,t,cosine_harmonics,param_array,T)
 
     # print(linear_penalty(penalty_weight,d,t,T,a))
+
+    harmonics_args = np.array([3.52455935, -0.03786313,  0.30414784, -0.22359681,  0.08369796])
+    power_args = np.array([1.81245345, -0.52092429, 3.37432895, -6.80384119, 3.79277465])
+
+    plt.plot(t,cosine_harmonics(d,t,harmonics_args,T),label="Cosine Harmonics")
+    plt.plot(t,cosine_power(d,t,power_args,T),label="Cosine Power")
+    plt.xlabel("t")
+    plt.ylabel("x_c")
+    plt.title("x_c against t")
+    plt.legend()
+    plt.show()

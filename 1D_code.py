@@ -112,26 +112,26 @@ class simulation:
                 penalty += (result[i-1]-result[i])**2
         return penalty * penalty_weight2 * (t[1]-t[0])
 
-
-    def cost(self, a):
-
-        #args = [T, a1, a2, ...]
-        res = self.res
+    def solve(self,a):
 
         self.set_a(a)
 
-        t = np.arange(0,self.T*5,res)
+        t = np.arange(0,self.T*5,self.res)
+
+        self.t = t.copy()
 
         c_0 = [0,0] #values for x and x_dot respectively at t=0
 
         result = odeint(self.f, c_0, t)
 
-        x = np.array(result[:,0])
+        return np.array(result[:,0])
 
-        x_ss = result[len(x)-1,0]
+
+    def cost(self, a):
+
+        x = self.solve(a)
 
         self.x = x.copy()
-        self.t = t.copy()
 
         x -= self.d
 
@@ -139,17 +139,21 @@ class simulation:
 
         t_i = 0
 
+        c_v = np.array([])
+
         for i in range(x.shape[0]):
-            if x[i] > 0 or t[i]>self.T:
+            if self.t[i]>self.T:
                 t_i = i
                 break
-
-        c_v = np.concatenate((np.zeros(t_i+1),np.ones(x.shape[0]-t_i-1)))
-
-        cost = np.matmul(c_v,x**2)+self.reverse_penalty(self.penalty_weight2, t)
-
-        # print(cost)
+            if x[i] > 0 or x[i]<-self.d:
+                c_v = np.concatenate((c_v,np.ones(1)))
+            else:
+                c_v = np.concatenate((c_v,np.zeros(1)))
         
+        c_v = np.concatenate((c_v,np.ones(x.shape[0]-t_i)))
+
+        cost = np.matmul(c_v,x**2)+self.reverse_penalty(self.penalty_weight2, self.t)
+
         return cost
 
     def get_cost(self):
@@ -157,9 +161,9 @@ class simulation:
 
     def plot_result(self):
         plt.plot(self.t,self.x)
-        plt.title("Displacement of print bed x/m against t/s")
-        plt.xlabel("Time t/s")
-        plt.ylabel("Displacement of bed x/m")
+        plt.title("Displacement of print bed x against t")
+        plt.xlabel("Time t")
+        plt.ylabel("Displacement of bed x")
         plt.show()
 
     def optimize(self):
@@ -184,28 +188,63 @@ def main():
     # a = np.array([6.41890472, -16.98920625,  14.74610913,  10.29036702])
     # a = np.array([1.25154432e+11, -2.85699456e+11,  1.78183933e+11, -1.02775459e+10])
     # a = np.array([23.37247036, -31.51913279, -11.69200124,  22.59164243])
-    a_array = np.array([[7.57019358e-03, -8.05906487e-05,  5.97101546e-04, -2.42414153e-04]])
-    a = np.array([7.57225490e-03, -8.06146837e-05,  5.97337219e-04, -2.42577751e-04])
+    # a_array = np.array([[1,1,1,1,1],[3.10882612, -0.83610475, -4.45310798,  6.09282191, -2.16597904]]) #power
+    a_array = np.array([[1,1,1,1,1],[2.35360779, -3.01336176, -3.79217689,  6.42038199, -1.88190296]]) #harmonics
+    # a = np.array([7.57225490e-03, -8.06146837e-05,  5.97337219e-04, -2.42577751e-04])
+    # a = np.array([ 11.42569133, -15.95800003, -11.58504045,  24.25121788,  -7.29509888])
+    a = np.array([1,1,1,1,1,1])
     d = 10
     T = 10
     print("printing displacement cosine_harmonics")
-    # displacement.plot_cosine_harmonics(d, t,displacement.cosine_harmonics, a, T)
-    #displacement.plot_cosine_power(d, t,displacement.cosine_power, a, T)
-    disp.plot(d, disp.cosine_harmonics, T, a_array)
-    sim = simulation(d, T, a, disp.cosine_harmonics)
-    sim.set_k(1)
-    cost = sim.get_cost()
-    print("cost:",cost)
-    sim.plot_result()
+    # disp.plot_cosine_harmonics(d, disp.cosine_harmonics, a, T)
+    #disp.plot(d, disp.cosine_power, T, np.array([a]))
+    # disp.plot(d, disp.cosine_harmonics, T, a_array)
+    sim = simulation(d, T, a, disp.cosine_power)
+    args_list = [[10,0.1,10,10,2],[10,0.1,10,5,2]]
+    for args in args_list:
+        sim.set_k(args[0])
+        sim.set_b(args[1])
+        sim.set_d(args[2])
+        sim.set_T(args[3])
+        sim.set_m_b(args[4])
+        # x = sim.solve(a_array[0])
+        # x_= sim.solve(a_array[1])
+        # t = sim.t
+        # plt.plot(t,x,label="Unoptimized")
+        # plt.plot(t,x_,label="Optimized")
+        # plt.legend()
+        # plt.title("Displacement of print bed x against t")
+        # plt.xlabel("Time t")
+        # plt.ylabel("Displacement of bed x")
+        # plt.show()
+        cost = sim.get_cost()
+        print("cost:",cost)
+        sim.plot_result()
     sim.optimize()
     sim.plot_result()
 
     # a1, a2, a3
     # sim.cost(T, a1, a2, a3)
 
-    
+def plot_results():
+    x = np.array([0,1])
+    m_b = np.array([946.15,1709.9])
+    d_T = np.array([365.82,2290.2])
+    b = np.array([1735.8,920.25])
+    k = np.array([1740.8,915.24])
+
+    plt.plot(x,m_b,label="m_b")
+    plt.plot(x,d_T,label="d/T")
+    plt.plot(x,b,label="b")
+    plt.plot(x,k,label="k")
+    plt.legend()
+    plt.title("Effect of doubling parameters on Cost")
+    plt.ylabel("Average Cost C")
+    plt.xlabel("Value of Parameter")
+    plt.show()
 
 if __name__ == "__main__":
     
     #Running main program
     main()
+    # plot_results()
